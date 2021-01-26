@@ -4,16 +4,15 @@ import {
     View,
     FlatList,
     StyleSheet,
-    ScrollView,
+    StatusBar,
     RefreshControl,
     SafeAreaView,
     Dimensions,
     Pressable,
     Alert
 } from 'react-native'
-import { listEvents } from '../api'
+import { listEvents, disableEvents } from '../api'
 import { Container, Header, Content, Card, CardItem, Body, Text, Fab, Icon, Button } from 'native-base'
-import { Circle } from 'react-native-svg'
 import WavyHeader from '../components/WavyHeader';
 import colors from '../colors'
 import { getMacAddress } from 'react-native-device-info';
@@ -82,7 +81,6 @@ const styles = StyleSheet.create({
     },
     textDatePast: {
         fontSize: 13,
-        fontWeight: 'bold',
         textDecorationLine: 'line-through'
     },
     textDescription: {
@@ -102,12 +100,13 @@ const styles = StyleSheet.create({
 });
 
 export default function List({ navigation }) {
-
+    const [active, setFabActive] = React.useState(false);
     const [refreshing, setRefreshing] = React.useState(false);
     const [eventsData, setEventsData] = React.useState([]);
+    const [eventsDataOriginal, setEventsDataOriginal] = React.useState([]);
+    const [macAdress, setMacAdress] = useState('');
 
     function createTwoButtonAlert(event){
-        console.log("pressed")
         Alert.alert(
             event.place+" - "+moment(event.date).format('DD/MM HH:mm'),
             "Descrição: "+event.description+"\n\n"
@@ -122,6 +121,28 @@ export default function List({ navigation }) {
         );
     }
         
+    function createInfoAlert(title, message){
+        Alert.alert(
+            title,
+            message,
+            [
+                { text: "Ok", onPress: () => {} }
+            ],
+            { cancelable: false }
+        );
+    }
+
+    function createDeleteAlert(){
+        Alert.alert(
+            "Excluir eventos",
+            "Deseja excluir todos os eventos cadastrados por você?",
+            [
+                { text: "Cancelar", onPress: () => {} },
+                { text: "Sim", onPress: () => disableData() }
+            ],
+            { cancelable: false }
+        );
+    }
 
     const onRefresh = React.useCallback(() => {
         getData()
@@ -130,11 +151,17 @@ export default function List({ navigation }) {
     async function getData() {
         setRefreshing(true);
         const data = await listEvents()
-        var keys = Object.keys(data)
+        setEventsDataOriginal(data)
+        var keys = []
+        try{
+            keys = Object.keys(data)
+        }catch(e){}
         var dataFiltered = []
         keys.forEach(key => {
             data[key].key = key
-            dataFiltered.push(data[key])
+            if(data[key].active){
+                dataFiltered.push(data[key])
+            }
         });
         dataFiltered.sort(function(eventA,eventB){
             return moment(eventA.date).format('YYYYMMDDHHmm') ? -1 : moment(eventB.date).format('YYYYMMDDHHmm') ? 1 : 0;
@@ -143,12 +170,48 @@ export default function List({ navigation }) {
         setRefreshing(false);
     }
 
+    async function disableData() {
+        setRefreshing(true);
+        var keysOriginal = Object.keys(eventsDataOriginal)
+        var eventsToDisable = eventsDataOriginal
+        keysOriginal.forEach(key => {
+            eventsToDisable[key].key = key
+            if(eventsToDisable[key].macAdress === macAdress){
+                eventsToDisable[key].active = false
+            }
+        });
+        var disableResponse = await disableEvents(eventsToDisable)
+        const data = disableResponse
+        setEventsDataOriginal(data)
+        var keys = Object.keys(data)
+        var dataFiltered = []
+        keys.forEach(key => {
+            data[key].key = key
+            if(data[key].active){
+                dataFiltered.push(data[key])
+            }
+        });
+        dataFiltered.sort(function(eventA,eventB){
+            return moment(eventA.date).format('YYYYMMDDHHmm') ? -1 : moment(eventB.date).format('YYYYMMDDHHmm') ? 1 : 0;
+        });
+        setEventsData(dataFiltered)
+        setRefreshing(false);
+        setRefreshing(false);
+    }
+
+    async function handleMacAdress(){
+        const adress = await getMacAddress()
+        setMacAdress(adress)
+    };
+
     useEffect(() => {
+        handleMacAdress()
         getData()
     }, [])
 
     return (
         <View style={styles.container}>
+            <StatusBar backgroundColor={colors.primary} />
             <WavyHeader customStyles={styles.svgCurve} />
             <View style={styles.headerContainer}>
                 <Text style={styles.headerText}>SOS Manaus</Text>
@@ -161,6 +224,7 @@ export default function List({ navigation }) {
             <Text style={styles.descriptionLabel}>Últimos eventos</Text>
             <SafeAreaView style={styles.list}>
                 <FlatList
+                    style={{marginBottom: 150}}
                     data={eventsData}
                     renderItem={({ item }) =>
                         <Card>
@@ -198,9 +262,27 @@ export default function List({ navigation }) {
             </SafeAreaView>
             <Fab
                 style={{ backgroundColor: colors.primary }}
+                active={active}
+                direction="up"
+                containerStyle={{ }}
                 position="bottomRight"
-                onPress={() => navigation.navigate('Register')}>
-                <Icon name="add" />
+                onPress={() => setFabActive(!active)}
+                >
+                <Icon name="caret-down-outline" />
+
+                <Button onPress={() => {setFabActive(!active); navigation.navigate('Contacts')}}  style={{ backgroundColor: '#06d6a0' }}>
+                    <Icon name="call-outline" />
+                </Button>
+
+                <Button onPress={() => {createDeleteAlert(); setFabActive(!active)}} style={{ backgroundColor: '#DD5144' }}>
+                    <Icon name="trash-outline" />
+                </Button>
+
+                <Button onPress={() => {setFabActive(!active); navigation.navigate('Register')}} 
+                    style={{ backgroundColor: '#648DE5' }}>
+                    <Icon name="add" />
+                </Button>
+                
             </Fab>
         </View>
     )

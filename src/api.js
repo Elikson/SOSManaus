@@ -10,9 +10,22 @@ export async function registerEvent(event){
         return data;
         })
         .catch(error => {
-        return null;
+        return error;
     });
-    return data;
+};
+
+export async function disableEvents(events){
+    const body = events;
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+    return axios.patch('https://sosmanaus-default-rtdb.firebaseio.com/events.json', body, { headers })
+        .then(({ data }) => {
+        return data;
+        })
+        .catch(error => {
+        return error;
+    });
 };
 
 export async function listEvents(){
@@ -26,5 +39,17 @@ export async function listEvents(){
         .catch(error => {
         return error;
     });
-    return data;
+};
+
+export async function listContacts(){
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+    return axios.get('https://sosmanaus-default-rtdb.firebaseio.com/contacts.json', { headers })
+        .then(({ data }) => {
+        return data;
+        })
+        .catch(error => {
+        return error;
+    });
 };

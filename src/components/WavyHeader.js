@@ -2,15 +2,17 @@ import * as React from 'react'
 import { View } from 'react-native'
 import { Svg, Path } from 'react-native-svg'
 import colors from '../colors'
+import { isTablet } from 'react-native-device-info';
 
 export default function WavyHeader({ customStyles }) {
+
     return (
       <View style={customStyles}>
         <View style={{ backgroundColor: colors.primary, height: 160 }}>
           <Svg
             height="60%"
             width="100%"
-            viewBox="0 0 1440 320"
+            viewBox={ !isTablet ? "0 0 1600 320" : "100 180 2000 180"}
             style={{ position: 'absolute', top: 130 }}
           >
             <Path
