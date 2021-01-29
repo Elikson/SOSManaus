@@ -1,1 +1,1 @@
-Um aplicativo de compartilhamento deações de ajuda em Manaus
+Um aplicativo de compartilhamento de ações de ajuda em Manaus
